@@ -4,8 +4,8 @@ import core_gameplay as gp
 import display as disp
 
 # Each AI function will have its own file to allow for more modular creation
-import human    
-#import Team     
+import human  
+import Team     
 
 
 def nums_output(nums, p1_name, p2_name):
@@ -166,5 +166,5 @@ class Game:
 
 
 if __name__ == "__main__":
-    game = Game(human.human_player, human.human_player, p1_name='Player 1', p2_name='Player 2', rand_start=True)
+    game = Game(human.human_player, Team.team_player, p1_name='Player 1', p2_name='Player 2', rand_start=True)
     game.run()

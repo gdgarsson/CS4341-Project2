@@ -5,6 +5,7 @@ import game as game
 import os.path
 import copy
 import math
+import random
 
 from os.path import exists as file_exists
 
@@ -23,9 +24,13 @@ def team_player(moves, main_board, local_board_num, my_symbol, opponent_symbol):
 
     # determine next move using minimax
     while not move_selected:
-        # pass in a copy as currentPos?
-        # expanding is done within minimax funciton recursively not here..
-        # move = minimax(currentPos, depth, alpha, beta, maximizing)
+        # create copy of
+        current_board = copy.copy(main_board)
+        current_local_board_num = copy.copy(local_board_num)
+        my_symbol_ = copy.copy(my_symbol)
+        opponent_symbol_ = copy.copy(opponent_symbol)
+        # pass current/root board into minimax.
+        move = minimax(current_board, current_local_board_num, my_symbol_, opponent_symbol_, depth, alpha, beta, maximizing)
         if move in moves:
             move_selected = True
 
@@ -35,60 +40,59 @@ def team_player(moves, main_board, local_board_num, my_symbol, opponent_symbol):
 
 # def minimax(pos, depth, alpha, beta, maximizingPlayer)
 # pos is represented by multiple args?
-def minimax(moves, main_board, local_board_num, my_symbol, opponent_symbol, depth, alpha, beta, maximizing):
+def minimax(current_board, current_local_board_num, my_symbol_, opponent_symbol_, depth, alpha, beta, maximizing):
     
-    # if depth == 0 or game over in pos
-    # if 
-    #   return static eval of pos (this is the only place we evaluate)
-    #
-    # if maximizing player
-    #   maxEval = -infinity
-    #   for each child of pos
-    #       eval = minimax(child, depth-1, alpha, beta, false)
-    #       maxEval = max(maxEval, eval)
-    #       alpha = max(alpha, eval)
-    #       if beta <= alpha:
-    #           break
-    #   return maxEval
-    # else
-    #   minEval = +inf
-    #   for each child of pos
-    #       eval = minimax(child, depth-1, alpha, beta, true) 
-    #       minEval = min(minEval, eval)
-    #       beta = min(beta, eval)
-    #       if beta <= alpha:
-    #           break
-    #   return minEval
+    # check if current board is a terminal state (if 0 game continues)
+    print("-----------")
+    print(current_board)
+    print("-----------")
+    is_terminal_board = gp.check_3x3_win(current_board)
 
-    return eval
+    # evaluate and return hueristic val only at terminal state
+    if depth == 0 or is_terminal_board != 0:
+        return randint(1,100)
 
-    # MISC LOGIC FOR DETERMINING TERMINAL NODE    
-    #board_state = game.game.main_board.copy()
-    #board_state_check_win = gp.check_3x3_win(board_state)
-    #if board_state_check_win != 0:
-    #    return board_state_check_win    
-    #minimax_scores = []
+    if maximizing:
+        max_eval = -math.inf
+        # can_move_in_won_board is set to false
+        # get all of the possible moves from current board 
+        possible_moves = gp.valid_moves(current_board, current_local_board_num, False)
+        
+        # create new board for each applied move
+        for move in possible_moves:
+            new_board = execute_move(new_board, move, my_symbol_, board_state_wins)
+            # recursive call for each child board
+            # Todo : pass in new local board number
+            eval = minimax(new_board, current_local_board_num, my_symbol_, opponent_symbol_, depth-1, alpha, beta, False)
+            max_eval = max(max_eval, eval)
+            if beta <= alpha:
+                break
+        return max_eval
+    
+    else:
+        min_eval = math.inf
+        # can_move_in_won_board is set to false
+        # get all of the possible moves from current board 
+        possible_moves = gp.valid_moves(current_board, current_local_board_num, False)
+
+         # create new board for each applied move
+        for move in possible_moves:
+            new_board = execute_move(new_board, move, my_symbol_, board_state_wins)
+            # recursive call for each child board
+            # Todo : pass in new local board number
+            eval = minimax(new_board, current_local_board_num, my_symbol_, opponent_symbol_, depth-1, alpha, beta, True)
+            min_eval = min(min_eval, eval)
+            if beta <= alpha:
+                break
+        return min_eval
+
 
 #execute_move(board_state , move)
-def execute_move(board_state, move, marker, board_state_wins):
-    new_board = board_state.copy()
+def execute_move(current_board, move, marker, board_state_wins):
+    new_board = current_board.copy()
     new_board_wins = board_state_wins.copy()
     gp.handle_mark_big_board(new_board, move, marker, new_board_wins)
     return new_board
-
-#get_valid_moves(board_state)
-# returns valid moves from curr position
-# 
-
-# Optional Rule Variables
-
-        # True allows you to send opponents to won boards (Thad rules)
-        # False means won boards are off limits (Classic rules)
-        #self.can_move_in_won_board = False
-
-        # True makes the game a draw when a player is sent to a full square (Thad rules)
-        # False allows the player to play in any free space (Classic rules)
-        #self.send_to_full_board_is_draw = False
 
 # The local board numbers are
 # 0 1 2
@@ -105,31 +109,3 @@ def execute_move(board_state, move, marker, board_state_wins):
 # move_set = [12,7,23]
 # move_set = [3,5,21]
 # moves = [09, 11, 13, 15, 16, 17]
-
-#-----
-    # possible_moves(current_board) -> pos_moves [0,1,2,3,4,5,6,7,8]
-    #  for each move in pos_moves:
-    #    move_set = [0]
-    #    expand all possible for 0
-    #    basecase: len(moveset) => 3
-    #       move_sets.append(moveset)
- 
-    # if (terminal_node_reached and len(moveset >= 3):
-    # 
-
-def make_move(maximizing, move, main_board, local_board_num, my_symbol, opponent_symbol):
-    my_move = -1
-    my_move = int(move)
-
-    #Check if the game has ended
-    #if not file_exists('end_game.txt'):
-        
-    # move local pair
-    move_lp = gp.global_to_local(my_move)
-    local_sq = move_lp[0]
-
-    if gp.handle_mark_big_board(main_board, my_move, my_symbol, self.main_board_wins) > -1:
-        self.winner = gp.check_3x3_win(self.main_board_wins)
-
-    print(self.main_board)
-
