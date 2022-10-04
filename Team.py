@@ -53,13 +53,13 @@ def minimax(current_board, current_local_board_num, board_state_wins, my_symbol_
     # evaluate and return hueristic val only at terminal state
     if depth == 0 or is_terminal_board != 0:
         if is_terminal_board == PLAYER0_MARKER and my_symbol_ == PLAYER0_MARKER:
-            return 100
+            return 101
 
         elif is_terminal_board == PLAYER1_MARKER and my_symbol_ == PLAYER1_MARKER:
-            return 100
+            return 101
         
         elif is_terminal_board == DRAW:
-            return 1
+            return -1
         
         else:
             return randint(1,100)
