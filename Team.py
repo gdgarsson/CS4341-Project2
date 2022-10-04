@@ -6,6 +6,7 @@ import os.path
 import copy
 import math
 import random
+import numpy as np
 
 from os.path import exists as file_exists
 
@@ -14,6 +15,7 @@ from core_gameplay import DRAW, NO_MARKER, PLAYER0_MARKER, PLAYER1_MARKER, NO_LO
 # when our turn: root node is current board position (opponents last move)
 # we need initial call to our minimax function from our starting pos
 def team_player(moves, main_board, local_board_num, my_symbol, opponent_symbol):
+    
     # initial states of player
     move_selected = False
     move = -1
@@ -27,77 +29,116 @@ def team_player(moves, main_board, local_board_num, my_symbol, opponent_symbol):
     # determine next move using minimax
     while not move_selected:
         # create copy of
+        current_moves = copy.copy(moves)
         current_board = copy.copy(main_board)
         current_local_board_num = copy.copy(local_board_num)
-        my_symbol_ = copy.copy(my_symbol)
-        opponent_symbol_ = copy.copy(opponent_symbol)
-        # pass current/root board into minimax.
-        move = minimax(current_board, current_local_board_num, my_symbol_, opponent_symbol_, depth, alpha, beta, maximizing)
-        if move in moves:
+        current_my_symbol = copy.copy(my_symbol)
+        current_opponent_symbol = copy.copy(opponent_symbol)
+        current_player = current_my_symbol
+        #current_board_wins = copy.copy(game.Game.main_board_wins)
+
+        # evaluate minimax fn for all possible moves from this point
+        # compare the scores pick the best
+        my_move = -1
+        best_score = -math.inf
+        for move in moves:
+            new_board = apply_move(move, current_board, current_local_board_num, current_player)
+            # switch current player after move is applied to board
+            if current_player == 1:
+                current_player = 2
+            else:
+                current_player = 1
+
+            # decides new local board num for opponent
+            new_local_board_num = global_to_local(move)
+            # recursive call for each child board
+            eval = minimax(new_board, new_local_board_num, current_player, depth-1, alpha, beta, True)
+            if eval > best_score:
+                best_score = eval
+                my_move = move
+        
+        # if the move we chose was valid, send it!
+        if my_move in moves:
             move_selected = True
 
     # return our optimal move
     return move
 
-
 # def minimax(pos, depth, alpha, beta, maximizingPlayer)
-# pos is represented by multiple args?
-def minimax(current_board, current_local_board_num, board_state_wins, my_symbol_, opponent_symbol_, depth, alpha, beta, maximizing):
+def minimax(current_board, current_local_board_num, current_player, depth, alpha, beta, maximizing):
     
-    # check if current board is a terminal state (if 0 game continues)
-    print("-----------")
-    print(current_board)
-    print("-----------")
-    is_terminal_board = check_3x3_win(current_board)
+    # can_move_in_won_board is set to false
+    # get all of the possible moves from current board 
+    current_possible_moves = valid_moves(current_board, current_local_board_num, False)
 
+    print("--------------------------------------------------------")
+    print("possible moves: " + str(current_possible_moves) + " count: " + str(len(current_possible_moves)))
+    print("--------------------------------------------------------")
+
+    # check if current board is a terminal state (no possible moves from current board)
     # evaluate and return hueristic val only at terminal state
-    if depth == 0 or is_terminal_board != 0:
-        if is_terminal_board == PLAYER0_MARKER and my_symbol_ == PLAYER0_MARKER:
-            return 101
-
-        elif is_terminal_board == PLAYER1_MARKER and my_symbol_ == PLAYER1_MARKER:
-            return 101
-        
-        elif is_terminal_board == DRAW:
-            return -1
-        
-        else:
-            return randint(1,100)
-
+    if depth == 0 or len(current_possible_moves) < 1:
+        out = random.randint(1,100)
+        print(out)
+        return out
+            
     if maximizing:
         max_eval = -math.inf
-        # can_move_in_won_board is set to false
-        # get all of the possible moves from current board 
-        possible_moves = valid_moves(current_board, current_local_board_num, False)
         
         # create new board for each applied move
-        for move in possible_moves:
-            new_board = execute_move(new_board, move, my_symbol_, board_state_wins)
-            # recursive call for each child board
-            # Todo : pass in new local board number
-            eval = minimax(new_board, current_local_board_num, my_symbol_, opponent_symbol_, depth-1, alpha, beta, False)
+        for move in current_possible_moves:
+
+            new_board = apply_move(move, current_board, current_local_board_num, current_player)
+            
+            # switch current player after move is applied to board
+            if current_player == 1:
+                current_player = 2
+            else:
+                current_player = 1
+
+            # decides new local board num for opponent
+            print("--------------------------------------------------------")
+            print(new_board)
+            print("applyied move: " + str(move))
+            new_local_board_num = global_to_local(move)
+            print("opponents new target local board: " + str(new_local_board_num))
+            print("--------------------------------------------------------")
+
+            # recursive call for each child board (need to specify current player)
+            eval = minimax(new_board, new_local_board_num, current_player, depth-1, alpha, beta, False)
             max_eval = max(max_eval, eval)
             if beta <= alpha:
                 break
         return max_eval
-    
+    # if minimizing    
     else:
         min_eval = math.inf
-        # can_move_in_won_board is set to false
-        # get all of the possible moves from current board 
-        possible_moves = valid_moves(current_board, current_local_board_num, False)
 
-         # create new board for each applied move
-        for move in possible_moves:
-            new_board = execute_move(new_board, move, my_symbol_, board_state_wins)
+        # create new board for each applied move
+        for move in current_possible_moves:
+            new_board = apply_move(move, current_board, current_local_board_num, current_player)
+
+            # switch current player after move is applied to board
+            if current_player == 1:
+                current_player = 2
+            else:
+                current_player = 1
+
+            # decides new local board num for opponent
+            new_local_board_num = global_to_local(move)
+
             # recursive call for each child board
-            # Todo : pass in new local board number
-            eval = minimax(new_board, current_local_board_num, my_symbol_, opponent_symbol_, depth-1, alpha, beta, True)
+            eval = minimax(new_board, new_local_board_num, current_player, depth-1, alpha, beta, True)
             min_eval = min(min_eval, eval)
             if beta <= alpha:
                 break
         return min_eval
 
+# create copy of current board and apply a give move
+def apply_move(move, current_board, current_local_board_num, current_symbol):
+    new_board = copy.copy(current_board)
+    new_board[current_local_board_num][move % 9] = current_symbol
+    return new_board
 
 #execute_move(board_state , move)
 def execute_move(current_board, move, marker, board_state_wins):
@@ -106,30 +147,13 @@ def execute_move(current_board, move, marker, board_state_wins):
     handle_mark_big_board(new_board, move, marker, new_board_wins)
     return new_board
 
-# The local board numbers are
-# 0 1 2
-# 3 4 5
-# 6 7 8
-#
-# The global numbers are of the form
-# 0 1 2 | 09 10 11 |
-# 3 4 5 | 12 13 14 |
-# 6 7 8 | 15 16 17 |
-
-# moves = [43]
-# move_set = [max for you, min for opp, max for you after opp move]
-# move_set = [12,7,23]
-# move_set = [3,5,21]
-# moves = [09, 11, 13, 15, 16, 17]
-
 # FUNCTIONAL
 # Converts a global square number (0-80) to a local
 # pair containing [local_square_number, board_number]
 def global_to_local(g):
     lb_num = int(np.floor(g / 9))
     l = g - lb_num * 9
-    return [l, lb_num]
-
+    return lb_num
 
 # FUNCTIONAL
 # Converts a local pair containing [local_square_number, board_number]
@@ -149,27 +173,6 @@ def check_3x3_win(board):
     if NO_MARKER not in board:
         return DRAW
     return NO_MARKER
-
-
-# Mutates big_board
-# Marks a big board at the global location given
-def mark_big_board(big_board, g_sq, marker):
-    local = global_to_local(g_sq)
-    big_board[local[1], local[0]] = marker
-
-
-# Mutates big_board, main_board_wins
-# Marks a big board at the global location given
-# Returns the number of the local board that was won if one was won, -1 otherwise
-def handle_mark_big_board(big_board, g_sq, marker, main_board_wins):
-    mark_big_board(big_board, g_sq, marker)
-    local_board_number = global_to_local(g_sq)[1]
-    local_winner = check_3x3_win(big_board[local_board_number])
-    if local_winner != NO_MARKER:
-        # If there was a local victory, see then if that ended the game
-        main_board_wins[local_board_number] = local_winner
-        return local_board_number
-    return -1
 
 # Gets the valid moves based on the global board state and
 # the currently active board
